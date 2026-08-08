@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Physics of Serving a Frontier Model — an interactive explainer</title>
+<meta name="description" content="An interactive companion to Dwarkesh Patel's blackboard lecture with Reiner Pope on how GPT, Claude and Gemini are actually trained and served.">
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+</head>
+<body>
+
+<a class="skip" href="#lecture">Skip to lecture</a>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">
+        <b>The Physics of Serving a Frontier Model</b>
+        <i>Reiner Pope × Dwarkesh Patel — an interactive explainer</i>
+      </span>
+    </div>
+    <nav class="topnav">
+      <button class="tnav" data-view="follow" aria-pressed="true">Follow</button>
+      <button class="tnav" data-view="lecture">Lecture</button>
+      <button class="tnav" data-view="models">Models</button>
+      <button class="tnav" data-view="numbers">Numbers</button>
+      <button class="tnav" data-view="glossary">Glossary</button>
+      <button class="tnav tnav-help" id="btnHelp" title="How this page works">? How it works</button>
+    </nav>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- ─────────── left rail: player + contents ─────────── -->
+  <aside class="rail" id="rail">
+    <div class="rail-sticky">
+
+      <div class="player-wrap">
+        <div class="player-frame">
+          <div id="player"></div>
+          <div class="player-fallback" id="playerFallback">
+            <p><b>Loading the video…</b></p>
+            <p class="muted">If it never appears, open <a href="https://www.youtube.com/watch?v=xmkSf5IS-zw" target="_blank" rel="noopener">the episode on YouTube</a>. This page still works without it — every timestamp link will open YouTube at the right moment.</p>
+          </div>
+        </div>
+
+        <div class="scrubber" id="scrubber" role="slider" tabindex="0"
+             aria-label="Lecture timeline" aria-valuemin="0" aria-valuemax="8020" aria-valuenow="0">
+          <div class="scrub-chapters" id="scrubChapters"></div>
+          <div class="scrub-marks" id="scrubMarks"></div>
+          <div class="scrub-played" id="scrubPlayed"></div>
+          <div class="scrub-head" id="scrubHead"></div>
+          <div class="scrub-tip" id="scrubTip" hidden></div>
+        </div>
+
+        <div class="transport">
+          <button class="tbtn" id="btnBack" title="Back 15 seconds (←)" aria-label="Back 15 seconds">–15s</button>
+          <button class="tbtn play" id="btnPlay" title="Play / pause (space)" aria-label="Play or pause">Play</button>
+          <button class="tbtn" id="btnFwd" title="Forward 15 seconds (→)" aria-label="Forward 15 seconds">+15s</button>
+          <span class="clock"><output id="clockNow">0:00</output><span class="clock-sep">/</span><span id="clockEnd">2:13:40</span></span>
+          <label class="follow" title="Scroll the lecture along with the video">
+            <input type="checkbox" id="followToggle" checked>
+            <span>Follow</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="nowplaying" id="nowPlaying" hidden>
+        <span class="np-kicker" id="npChapter"></span>
+        <b class="np-title" id="npTitle"></b>
+      </div>
+
+      <div class="toc-head"><b>Contents</b><span id="tocCount"></span></div>
+      <div class="toc-wrap">
+        <nav class="toc" id="toc" aria-label="Chapters"></nav>
+      </div>
+
+      <p class="rail-foot">
+        Built from the full transcript of
+        <a href="https://www.youtube.com/watch?v=xmkSf5IS-zw" target="_blank" rel="noopener">the episode</a>.
+        Every number in the interactive models is the presenter's own, unless marked
+        <span class="tag tag-derived">derived</span>.
+      </p>
+    </div>
+  </aside>
+
+  <!-- ─────────── main ─────────── -->
+  <main class="main">
+
+    <!-- ═══ FOLLOW: the explainer for whatever moment the video is at ═══ -->
+    <section class="view" id="view-follow">
+      <div class="follow-head">
+        <div class="fh-left">
+          <span class="fh-kicker" id="fhKicker">Follow along</span>
+          <h1 class="fh-chapter" id="fhChapter">Press play — the explainer follows the video</h1>
+        </div>
+        <div class="fh-right" id="fhNav" hidden>
+          <button class="tbtn" id="fPrev" title="Previous beat">← Prev</button>
+          <span class="fh-count" id="fhCount"></span>
+          <button class="tbtn" id="fNext" title="Next beat">Next →</button>
+        </div>
+      </div>
+      <div class="fh-progress"><i id="fhProgress"></i></div>
+
+      <div id="followStage" class="stage"></div>
+
+      <div class="stage-next" id="stageNext" hidden>
+        <span>Coming up</span>
+        <button class="upnext" id="upNext"></button>
+      </div>
+    </section>
+
+    <section class="view" id="view-lecture" hidden>
+      <div class="hero">
+        <p class="hero-kicker">A blackboard lecture, made playable</p>
+        <h1>Why a token costs what it costs</h1>
+        <p class="hero-lede">
+          Reiner Pope (CEO of MatX, previously TPU architecture at Google) spends two hours at a
+          blackboard deriving the economics of frontier AI from two quantities: <b>how long it takes to
+          move bytes</b>, and <b>how long it takes to multiply them</b>. Almost everything else — API
+          prices, context-length limits, why models suddenly got bigger, why fast mode costs 6× —
+          falls out of that.
+        </p>
+        <p class="hero-lede">
+          This page is the lecture with the whiteboard turned back on. Drag the sliders; the curves he
+          draws are live. Hit any <span class="inline-cue">▶</span> to jump the video to the moment he
+          derives it.
+        </p>
+        <div class="hero-stats" id="heroStats"></div>
+        <div class="hero-arc">
+          <h2 class="arc-h">The argument, end to end</h2>
+          <ol class="arc" id="arcList"></ol>
+        </div>
+      </div>
+
+      <div id="lecture" class="lecture"></div>
+
+      <footer class="endcap">
+        <h2>That's the lecture.</h2>
+        <p>
+          The whole two hours reduces to one habit: write down the time for the memory fetches, write
+          down the time for the multiplies, set them equal, and see what the world must look like for
+          that to be true. <q>It's kind of empowering to just set A equal to B and figure it out.</q>
+        </p>
+        <p class="endcap-links">
+          <a href="https://www.youtube.com/watch?v=xmkSf5IS-zw" target="_blank" rel="noopener">Watch the full episode ↗</a>
+        </p>
+      </footer>
+    </section>
+
+    <section class="view" id="view-models" hidden>
+      <div class="view-head">
+        <h1>Every interactive model</h1>
+        <p>All the calculators and diagrams from the lecture, in one place. Each one links back to the moment it comes from.</p>
+      </div>
+      <div id="modelIndex" class="model-index"></div>
+    </section>
+
+    <section class="view" id="view-numbers" hidden>
+      <div class="view-head">
+        <h1>Every number he cites</h1>
+        <p>The concrete quantities from the lecture — bandwidths, batch sizes, prices, token counts — each with the moment it was said. Click any row to jump there.</p>
+      </div>
+      <div class="num-filter">
+        <input type="search" id="numSearch" placeholder="Filter numbers… (e.g. bandwidth, DeepSeek, $)" aria-label="Filter numbers">
+      </div>
+      <div id="numberTable" class="num-table"></div>
+    </section>
+
+    <section class="view" id="view-glossary" hidden>
+      <div class="view-head">
+        <h1>Glossary</h1>
+        <p>The jargon, defined in the sense the lecture uses it.</p>
+      </div>
+      <div class="glos-filter">
+        <input type="search" id="glosSearch" placeholder="Filter terms…" aria-label="Filter terms">
+      </div>
+      <div id="glossary" class="glossary"></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/content.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/diagrams.js"></script>
+<script src="js/widgets.js"></script>
+<script src="js/player.js"></script>
+<script src="js/app.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>

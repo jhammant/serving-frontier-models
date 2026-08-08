@@ -1,0 +1,10 @@
+# Source transcript of someone else's episode.
+# The published site uses summaries plus short attributed quotes — commentary.
+# A complete verbatim transcript is a different thing, so it stays local.
+# Regenerate it with the yt-dlp command in README.md.
+podcast*.vtt
+transcript.txt
+chapters/
+
+.DS_Store
+node_modules/
