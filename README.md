@@ -68,7 +68,18 @@ specs. `build_content.py` assembles the results into `js/content.js`.
 ```bash
 python3 build_content.py     # rebuild content from the workflow journal
 node validate_widgets.js     # check every expression evaluates finite
+python3 make_og.py           # regenerate the social card (og.svg + og.png)
 ```
+
+`make_og.py` draws the Open Graph card from the same roofline equations and the
+same DeepSeek-V3 / NVL72 defaults as the flagship model, so the preview image
+plots the thing the page teaches rather than decorating it.
+
+**If you move the site to another domain**, the `og:*` URLs in `index.html` are
+absolute (Open Graph requires it) — update `og:url`, `og:image`,
+`og:image:secure_url`, `twitter:image` and `<link rel="canonical">`, then
+re-scrape the URL in LinkedIn's Post Inspector, which caches previews for
+roughly a week.
 
 `validate_widgets.js` matters: the specs are machine-authored, so every output
 expression and chart series is evaluated at its defaults, at every preset, and across
